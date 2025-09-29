@@ -2,86 +2,72 @@ import streamlit as st
 import requests
 
 st.set_page_config(
-    page_title="API Diagnostic",
-    page_icon="🔧",
+    page_title="EODHD Free Tier Test",
+    page_icon="🧪",
     layout="wide"
 )
 
-def test_api_directly():
-    """Test the API endpoint directly and show raw response"""
-    
-    api_key = st.secrets["EODHD_API_KEY"]
-    
-    # Test the exact endpoint you provided
-    url = "https://eodhd.com/api/exchange-symbol-list/KAR"
+def test_basic_eod(symbol):
+    """Test if basic EOD endpoint works"""
+    url = f"https://eodhd.com/api/eod/{symbol}"
     params = {
-        'api_token': api_key,
-        'fmt': 'json'
+        'api_token': st.secrets["EODHD_API_KEY"],
+        'fmt': 'json',
+        'from': '2024-01-01',
+        'to': '2024-01-05'
     }
     
-    st.write("🔧 **Testing API Endpoint:**")
-    st.code(f"URL: {url}")
-    st.code(f"Params: {params}")
-    
     try:
-        with st.spinner("Calling API..."):
-            response = requests.get(url, params=params, timeout=15)
-        
-        st.write("📡 **Response Details:**")
-        st.write(f"Status Code: {response.status_code}")
-        st.write(f"Headers: {dict(response.headers)}")
-        
-        if response.status_code == 200:
-            data = response.json()
-            st.success("✅ API Call Successful!")
-            st.write(f"Data Type: {type(data)}")
-            st.write(f"Data Length: {len(data) if data else 0}")
-            
-            if data and len(data) > 0:
-                st.write("📊 **Sample Data (first 5 items):**")
-                for i, item in enumerate(data[:5]):
-                    st.write(f"{i+1}. {item}")
-            else:
-                st.warning("⚠️ API returned empty data")
-                
-        else:
-            st.error(f"❌ API Error: {response.status_code}")
-            st.write(f"Response Text: {response.text}")
-            
+        response = requests.get(url, params=params, timeout=10)
+        return response.status_code, response.json() if response.status_code == 200 else None
     except Exception as e:
-        st.error(f"💥 Exception: {str(e)}")
+        return f"Error: {str(e)}", None
 
-def test_alternative_endpoints():
-    """Test alternative API endpoints"""
-    
-    api_key = st.secrets["EODHD_API_KEY"]
-    endpoints = [
-        "https://eodhd.com/api/exchange-symbol-list/PSX",
-        "https://eodhd.com/api/exchange-symbol-list/PAK", 
-        "https://eodhd.com/api/exchanges/KAR",
-        "https://eodhd.com/api/symbol-search/HBL.KAR"
-    ]
-    
-    st.write("🔄 **Testing Alternative Endpoints:**")
-    
-    for endpoint in endpoints:
-        try:
-            response = requests.get(endpoint, params={'api_token': api_key, 'fmt': 'json'}, timeout=10)
-            st.write(f"{endpoint} -> Status: {response.status_code}")
-            if response.status_code == 200:
-                data = response.json()
-                st.success(f"✅ Works! Found {len(data) if data else 0} items")
-        except Exception as e:
-            st.write(f"{endpoint} -> Error: {str(e)}")
+# Main test
+st.title("🧪 EODHD Free Tier Reality Check")
+st.markdown("### **Testing what ACTUALLY works with your free plan**")
 
-# Main app
-st.title("🔧 EODHD API Diagnostic")
-st.markdown("### Testing API endpoints to find working PSX data")
+st.warning("🚨 **Truth Bomb:** Let's see what you're actually paying for")
 
-st.warning("Let's figure out why the API call is failing")
+test_symbols = [
+    'HBL.KAR', 'AAPL.US', 'RELIANCE.BSE', 'TATA.BSE',
+    'MSFT.US', 'INFY.BSE', 'TCS.BSE'
+]
 
-if st.button("🧪 RUN API DIAGNOSTIC", type="primary"):
-    test_api_directly()
+if st.button("🔍 TEST WHAT ACTUALLY WORKS", type="primary"):
     
-if st.button("🔄 TEST ALTERNATIVE ENDPOINTS"):
-    test_alternative_endpoints()
+    results = []
+    
+    for symbol in test_symbols:
+        with st.expander(f"Testing {symbol}", expanded=True):
+            status, data = test_basic_eod(symbol)
+            
+            st.write(f"**Status:** {status}")
+            
+            if status == 200 and data:
+                st.success(f"✅ **WORKS!** Got {len(data)} days of data")
+                if data:
+                    st.json(data[0])  # Show first data point
+            elif status == 402:
+                st.error("❌ **402 PAYMENT REQUIRED** - They lied about 'free'")
+            elif status == 403:
+                st.error("❌ **403 FORBIDDEN** - Not in your plan")
+            else:
+                st.error(f"❌ **FAILED:** {status}")
+    
+    st.markdown("---")
+    st.subheader("🎯 **BOTTOM LINE:**")
+    
+    st.error("""
+    **If most tests show 402 errors:**
+    - They're lying about "free EOD data"
+    - Your API key is practically useless
+    - You need to find a different data provider
+    """)
+    
+    st.info("""
+    **Next Steps:**
+    1. **Contact their support** and ask why basic EOD endpoints return 402
+    2. **Check if any stocks actually work** (maybe only .US stocks?)
+    3. **Consider alternative data providers** that are actually honest
+    """)
