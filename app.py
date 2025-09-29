@@ -1,4 +1,4 @@
-     import streamlit as st
+   import streamlit as st
 import pandas as pd
 import requests
 import numpy as np
@@ -272,4 +272,4 @@ def main():
             st.info("🤷 No elite signals found in KSE-100. Market conditions don't meet the strict 75%+ win rate criteria.")
 
 if __name__ == "__main__":
-    main()               
+    main()              
